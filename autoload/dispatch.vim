@@ -452,7 +452,8 @@ endfunction
 
 function! s:open_quickfix(request, copen) abort
   let was_qf = &buftype ==# 'quickfix'
-  execute 'botright' (!empty(getqflist()) || a:copen) ? 'copen' : 'cwindow'
+  call g:QuickFixHelperOpenWindow('')
+  "execute 'botright' (!empty(getqflist()) || a:copen) ? 'copen' : 'cwindow'
   if &buftype ==# 'quickfix' && !was_qf && !a:copen
     wincmd p
   endif
