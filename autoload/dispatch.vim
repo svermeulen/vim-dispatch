@@ -393,6 +393,7 @@ function! dispatch#complete(file, ...) abort
     let request = s:request(a:file)
     let request.completed = 1
     if !a:0
+      let request.fsize = getfsize(request.file)
       if has_key(request, 'args')
         echo 'Finished :Make' request.args
       else
@@ -400,15 +401,31 @@ function! dispatch#complete(file, ...) abort
       endif
     endif
     if !request.background
-      call s:cgetfile(request, 0, 0)
-      redraw
+        call s:cgetfile(request, 0, 0)
+        redraw
     endif
+    redraws!
   endif
   return ''
 endfunction
 
 " }}}1
 " Quickfix window {{{1
+
+" 
+function! dispatch#GetLastRequestStatus()
+    if empty(s:makes)
+        return 'none'
+    endif
+
+    let request = s:makes[-1]
+
+    if !dispatch#completed(request)
+        return 'busy'
+    endif
+
+    return request.fsize == 0 ? 'success' : 'failed'
+endfunction
 
 function! dispatch#copen(bang) abort
   if empty(s:makes)
