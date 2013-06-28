@@ -424,6 +424,10 @@ function! dispatch#GetLastRequestStatus()
         return 'busy'
     endif
 
+    if request.command =~ 'ack'
+        return 'success'
+    endif
+
     return request.fsize == 0 ? 'success' : 'failed'
 endfunction
 
@@ -464,12 +468,12 @@ function! s:cgetfile(request, all, copen) abort
     let &l:makeprg = makeprg
     call s:set_current_compiler(compiler)
   endtry
-  call s:open_quickfix(request, a:copen)
+  "call s:open_quickfix(request, a:copen)
 endfunction
 
 function! s:open_quickfix(request, copen) abort
   let was_qf = &buftype ==# 'quickfix'
-  call g:QuickFixHelperOpenWindow('')
+  call quickfixhelper#OpenWindow('')
   "execute 'botright' (!empty(getqflist()) || a:copen) ? 'copen' : 'cwindow'
   if &buftype ==# 'quickfix' && !was_qf && !a:copen
     wincmd p
