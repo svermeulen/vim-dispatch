@@ -246,7 +246,8 @@ if !exists('s:makes')
   let s:files = {}
 endif
 
-function! dispatch#compile_command(bang, args) abort
+function! dispatch#compile_command(bang, args, ...) abort
+
   if !empty(a:args)
     let args = a:args
   else
@@ -269,6 +270,9 @@ function! dispatch#compile_command(bang, args) abort
         \ 'directory': getcwd(),
         \ 'format': '%+G%.%#'
         \ }
+
+  let request.callback = a:0 ? a:1 : ''
+  let request.userArgs = a:0 > 1 ? a:2 : []
 
   if executable ==# '_'
     let request.args = matchstr(args, '_\s*\zs.*')
@@ -392,17 +396,22 @@ function! dispatch#complete(file, ...) abort
   if !dispatch#completed(a:file)
     let request = s:request(a:file)
     let request.completed = 1
-    if !a:0
-      let request.fsize = getfsize(request.file)
-      if has_key(request, 'args')
-        echo 'Finished :Make' request.args
-      else
-        echo 'Finished :Dispatch' request.command
-      endif
-    endif
     if !request.background
-        call s:cgetfile(request, 0, 0)
+        call s:cgetfile(request, 0)
         redraw
+    endif
+    if !a:0
+        let request.fsize = getfsize(request.file)
+
+        if len(request.callback) >= 0
+            exec 'call '. request.callback . '(request)'
+        else
+            if has_key(request, 'args')
+                echo 'Finished :Make' request.args
+            else
+                echo 'Finished :Dispatch' request.command
+            endif
+        endif
     endif
     redraws!
   endif
@@ -439,10 +448,10 @@ function! dispatch#copen(bang) abort
   if !dispatch#completed(request) && filereadable(request.file . '.complete')
     let request.completed = 1
   endif
-  call s:cgetfile(request, a:bang, 1)
+  call s:cgetfile(request, a:bang)
 endfunction
 
-function! s:cgetfile(request, all, copen) abort
+function! s:cgetfile(request, all) abort
   let request = s:request(a:request)
   let efm = &l:efm
   let makeprg = &l:makeprg
@@ -468,30 +477,25 @@ function! s:cgetfile(request, all, copen) abort
     let &l:makeprg = makeprg
     call s:set_current_compiler(compiler)
   endtry
-  "call s:open_quickfix(request, a:copen)
 endfunction
 
-function! s:open_quickfix(request, copen) abort
-  let was_qf = &buftype ==# 'quickfix'
-  call quickfixhelper#OpenWindow('')
-  "execute 'botright' (!empty(getqflist()) || a:copen) ? 'copen' : 'cwindow'
-  if &buftype ==# 'quickfix' && !was_qf && !a:copen
-    wincmd p
-  endif
-  for winnr in range(1, winnr('$'))
-    if getwinvar(winnr, '&buftype') ==# 'quickfix'
-      call setwinvar(winnr, 'quickfix_title', ':' . a:request.expanded)
-      let bufnr = winbufnr(winnr)
-      call setbufvar(bufnr, '&efm', a:request.format)
-      call setbufvar(bufnr, 'dispatch', escape(a:request.expanded, '%#'))
-      if has_key(a:request, 'program')
-        call setbufvar(bufnr, '&makeprg', a:request.program)
-      endif
-      if has_key(a:request, 'compiler')
-        call setbufvar(bufnr, 'current_compiler', a:request.compiler)
-      endif
-    endif
-  endfor
-endfunction
+"function! s:open_quickfix(request) abort
+  "call quickfixhelper#OpenWindow('')
+
+  "for winnr in range(1, winnr('$'))
+    "if getwinvar(winnr, '&buftype') ==# 'quickfix'
+      "call setwinvar(winnr, 'quickfix_title', ':' . a:request.expanded)
+      "let bufnr = winbufnr(winnr)
+      "call setbufvar(bufnr, '&efm', a:request.format)
+      "call setbufvar(bufnr, 'dispatch', escape(a:request.expanded, '%#'))
+      "if has_key(a:request, 'program')
+        "call setbufvar(bufnr, '&makeprg', a:request.program)
+      "endif
+      "if has_key(a:request, 'compiler')
+        "call setbufvar(bufnr, 'current_compiler', a:request.compiler)
+      "endif
+    "endif
+  "endfor
+"endfunction
 
 " }}}1
