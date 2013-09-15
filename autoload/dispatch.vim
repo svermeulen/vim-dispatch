@@ -38,6 +38,7 @@ endfunction
 
 let s:flags = '\%(:[p8~.htre]\|:g\=s\(\.\).\{-\}\1.\{-\}\1\)*'
 let s:expandable = '\\*\%(<\w\+>\|%\|#\d*\)' . s:flags
+
 function! dispatch#expand(string) abort
   return substitute(a:string, s:expandable, '\=s:expand(submatch(0))', 'g')
 endfunction
@@ -303,7 +304,11 @@ function! dispatch#compile_command(bang, args, ...) abort
     wall
   endif
 
-  let request.expanded = dispatch#expand(request.command)
+  " don't expand, it's more annoying than helpful
+  " and causes many issues with ack when searching for # / % / | / etc.
+  "let request.expanded = dispatch#expand(request.command)
+  let request.expanded = request.command
+
   let request.file = tempname()
   call extend(s:makes, [request])
   let request.id = len(s:makes)
