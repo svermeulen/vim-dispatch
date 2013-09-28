@@ -426,25 +426,6 @@ endfunction
 " }}}1
 " Quickfix window {{{1
 
-" 
-function! dispatch#GetLastRequestStatus()
-    if empty(s:makes)
-        return 'none'
-    endif
-
-    let request = s:makes[-1]
-
-    if !dispatch#completed(request)
-        return 'busy'
-    endif
-
-    if request.command =~ 'ack'
-        return 'success'
-    endif
-
-    return request.fsize == 0 ? 'success' : 'failed'
-endfunction
-
 function! dispatch#copen(bang) abort
   if empty(s:makes)
     return 'echoerr ' . string('No dispatches yet')
