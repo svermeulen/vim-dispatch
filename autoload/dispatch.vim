@@ -327,7 +327,7 @@ if !exists('s:makes')
   let s:files = {}
 endif
 
-function! dispatch#compile_command(bang, args, count) abort
+function! dispatch#compile_command(bang, args, count, ...) abort
   if !empty(a:args)
     let args = a:args
   else
@@ -352,6 +352,9 @@ function! dispatch#compile_command(bang, args, count) abort
         \ 'file': tempname(),
         \ 'format': '%+G%.%#'
         \ }
+
+  let request.callback = a:0 ? a:1 : ''
+  let request.userArgs = a:0 > 1 ? a:2 : []
 
   if executable ==# '_'
     let request.args = matchstr(args, '_\s*\zs.*')
@@ -392,7 +395,12 @@ function! dispatch#compile_command(bang, args, count) abort
   try
     silent doautocmd QuickFixCmdPre dispatch-make
     let request.directory = getcwd()
-    let request.expanded = dispatch#expand(request.command)
+
+    " don't expand, it's more annoying than helpful
+    " and causes many issues with ack when searching for # / % / | / etc.
+    "let request.expanded = dispatch#expand(request.command)
+    let request.expanded = request.command
+
     call extend(s:makes, [request])
     let request.id = len(s:makes)
     let s:files[request.file] = request
@@ -535,11 +543,20 @@ function! dispatch#complete(file) abort
   if !dispatch#completed(a:file)
     let request = s:request(a:file)
     let request.completed = 1
-    echo 'Finished:' request.command
     if !request.background
       call s:cgetfile(request, 0, 0)
       redraw
     endif
+
+    let request.fsize = getfsize(request.file)
+
+    if len(request.callback) >= 0
+        exec 'call '. request.callback . '(request)'
+    else
+        echo 'Finished:' request.command
+    endif
+    redraws!
+
   endif
   return ''
 endfunction
